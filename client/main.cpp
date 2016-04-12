@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
    QWidget *window = new QWidget();
 
-   window->resize(500, 700);
+   window->resize(500, 200);
    window->setWindowTitle("Akai");
    window->show();
 
