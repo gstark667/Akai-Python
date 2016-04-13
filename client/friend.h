@@ -40,10 +40,12 @@ public:
    void readFriendsList();
    void writeFriendsList();
 
+
    void addFriend(std::string userName, std::string iconPath, std::string publicKey);
    void removeFriend(std::string userName);
 
-   const std::vector<Friend> getFriends() const;
+   const Friend* getFriend(size_t i) const { return &m_friends.at(i); };
+   const size_t getFriendCount() const { return m_friends.size(); };
 };
 
 #endif
