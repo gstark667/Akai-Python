@@ -2,6 +2,21 @@
 
 using namespace std;
 
+MessageCompose::MessageCompose(QWidget *parent): QTextEdit(parent)
+{
+
+}
+
+MessageHistory::MessageHistory(QWidget *parent): QScrollArea(parent)
+{
+
+}
+
+MessagePane::MessagePane(QWidget *parent): QSplitter(Qt::Horizontal)
+{
+
+}
+
 FriendsList::FriendsList(const FriendManager *friendManager): QListWidget()
 {
    m_friendCount = friendManager->getFriendCount();

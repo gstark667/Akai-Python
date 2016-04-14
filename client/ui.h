@@ -6,11 +6,39 @@
 #include <QSplitter>
 #include <QListWidget>
 #include <QTextEdit>
+#include <QScrollArea>
 #include <QVBoxLayout>
 #include <string>
-#include <thread>
+#include <vector>
 
 #include "friend.h"
+
+class MessageCompose: public QTextEdit
+{
+private:
+   
+public:
+   MessageCompose(QWidget *parent);
+};
+
+class MessageHistory: public QScrollArea
+{
+private:
+   std::vector<QWidget> m_messages;
+
+public:
+   MessageHistory(QWidget *parent);
+
+};
+
+class MessagePane: public QSplitter
+{
+private:
+
+public:
+   MessagePane(QWidget *parent);
+
+};
 
 class FriendsList: public QListWidget
 {
