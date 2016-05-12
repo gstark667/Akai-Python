@@ -8,7 +8,7 @@ import hashlib
 import binascii
 
 HOST = ""
-PORT = 4242
+PORT = 6667
 
 clients = {}
 #this is for testing
@@ -35,12 +35,11 @@ def handle_message(username, message):
    handle_request(username, request)
 
 def handle_client(conn, addr):
-   conn.send(b'{"action": "AUTH"}')
-
    responses = []
    username = ""
    while True:
       data = conn.recv(1024)
+      print(data)
       response = json.loads(data.decode("utf-8"))
       if response["action"] == "AUTH":
          username = response["username"]
@@ -48,7 +47,14 @@ def handle_client(conn, addr):
       else:
          responses.append(response)
 
-   print(authenticate(username, response["password"]))
+   if authenticate(username, response["password"]):
+      response = {"action":"RESP", "good":"True", "reqnum":response["reqnum"]}
+      conn.send(json.dumps(response).encode("utf-8"))
+   else:
+      response = {"action":"RESP", "good":"False", "reqnum":response["reqnum"]}
+      conn.send(json.dumps(response).encode("utf-8"))
+      conn.close()
+      return
       
    clients[username] = (conn, addr)
    print("Accepted Client:%s" % (username))
