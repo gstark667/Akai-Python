@@ -25,58 +25,56 @@ def authenticate(username, password):
    password_hash = binascii.hexlify(password_hash)
    return password_hash == user[0]
 
-def handle_request(username, request):
-   if request["action"] == "SEND":
-      send_request = {"action": "RECV", "sender": username, "content": request["content"]}
-      clients[request["recipiant"]][0].send(json.dumps(send_request).encode("utf-8"))
+class ClientConnection():
+   def __init__(self, conn, addr):
+      self.conn = conn
+      self.addr = addr
 
-def handle_message(username, message):
-   request = json.loads(message)
-   handle_request(username, request)
+      self.is_connected = self.authenticate_client()
+      if not self.is_connected:
+         self.disconnect()
+         return
 
-def handle_client(conn, addr):
-   responses = []
-   username = ""
-   while True:
-      data = conn.recv(1024)
-      print(data)
-      response = json.loads(data.decode("utf-8"))
-      if response["action"] == "AUTH":
-         username = response["username"]
-         break
-      else:
-         responses.append(response)
+      self.response_handlers = {}
 
-   if authenticate(username, response["password"]):
-      response = {"action":"RESP", "good":"True", "reqnum":response["reqnum"]}
+      self.processing_thread = threading.Thread(target=self.process_messages)
+      self.processing_thread.deamon = True
+      self.processing_thread.start()
+
+   def disconnect(self):
+      self.conn.close()
+
+   def authenticate_client(self):
+      request = conn.recv(1024)
+      request = json.loads(request.decode("utf-8"))
+      if not request["action"] == "AUTH":
+         return False
+      if not authenticate(request["username"], request["password"]):
+         return False
+      self.username = request["username"]
+      response = {"action":"RESP", "good":"True", "reqnum":request["reqnum"]}
       conn.send(json.dumps(response).encode("utf-8"))
-   else:
-      response = {"action":"RESP", "good":"False", "reqnum":response["reqnum"]}
-      conn.send(json.dumps(response).encode("utf-8"))
-      conn.close()
-      return
-      
-   clients[username] = (conn, addr)
-   print("Accepted Client:%s" % (username))
+      return True
 
-   for response in responses:
-      handle_request(username, response)
+   def handle_message(self, message):
+      message = json.loads(message)
+      if message["action"] == "RESP" and message["reqnum"] in self.response_handlers:
+         self.response_handlers[message["reqnum"]](message)
+         del self.response_handlers[message["reqnum"]]
 
-   while True:
-      data = conn.recv(1024)
-      if len(data) == 0:
-         break
-      handle_message(username, data.decode("utf-8"))
-
-   print("Client Disconnected")
-   conn.close()
+   def process_messages(self):
+      while True:
+         data = self.conn.recv(1024)
+         if len(data) == 0:
+            break
+         self.handle_message(data.decode("utf-8"))
 
 def signal_handler(signal, frame):
    global server
    print("Shutting Down Server")
    server.close()
    for client in clients:
-      clients[client][0].close()
+      clients[client].disconnect()
    sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -87,6 +85,6 @@ server.listen(1)
 
 while True:
    conn, addr = server.accept()
-   tmp = threading.Thread(target=handle_client, args=[conn, addr])
-   tmp.deamon = True
-   tmp.start()
+   client = ClientConnection(conn, addr)
+   if client.is_connected:
+      clients[client.username] = client
