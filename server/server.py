@@ -6,6 +6,7 @@ import signal
 import sys
 import hashlib
 import binascii
+import database
 
 HOST = ""
 PORT = 6667
@@ -14,16 +15,6 @@ clients = {}
 #this is for testing
 #password is potato
 #hash was generated with os.urandom(32)
-users = {"gstark": (b"990152d7bfce354f7d720d5859ff7f6ea88a52d1e78ff2c9e63297a298a25e5f",
-                     b"11b1a017c76c6f4fcabc498b344ca11c88e0cda7ad8a896f03af0907220f0100")}
-
-def authenticate(username, password):
-   user = users[username]
-   if not user:
-      return false
-   password_hash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), user[1], 1000000)
-   password_hash = binascii.hexlify(password_hash)
-   return password_hash == user[0]
 
 class ClientConnection():
    def __init__(self, conn, addr):
@@ -33,7 +24,9 @@ class ClientConnection():
       self.is_connected = self.authenticate_client()
       if not self.is_connected:
          self.disconnect()
+         print("Client Authentication Failure")
          return
+      print("Client Connected")
 
       self.response_handlers = {}
 
@@ -49,7 +42,7 @@ class ClientConnection():
       request = json.loads(request.decode("utf-8"))
       if not request["action"] == "AUTH":
          return False
-      if not authenticate(request["username"], request["password"]):
+      if not database.authenticate(request["username"], request["password"]):
          return False
       self.username = request["username"]
       response = {"action":"RESP", "good":"True", "reqnum":request["reqnum"]}
@@ -75,9 +68,11 @@ def signal_handler(signal, frame):
    server.close()
    for client in clients:
       clients[client].disconnect()
+   database.save()
    sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
+database.init()
 
 server = socket(AF_INET, SOCK_STREAM)
 server.bind((HOST, PORT))
