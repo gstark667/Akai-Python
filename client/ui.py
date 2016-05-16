@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+import config
 
 class UI():
    #TODO don't pass username as an argument, load it from the config file
@@ -59,7 +60,7 @@ class MainWindow(QWidget):
       self.messages[username].append(("octalus", "hello"))
       self.messages[username].append(("gstark", "hi"))
       #TODO we should probably sanatize these to prevent directory manipulation
-      friend = QListWidgetItem(QIcon(username + ".png"), username)
+      friend = QListWidgetItem(QIcon(config.ICON_DIR + username + ".png"), username)
       self.friend_list.addItem(friend)
 
    def friendClicked(self, item):
@@ -110,4 +111,5 @@ class MessageInput(QTextEdit):
       if event.key() == Qt.Key_Shift:
          self.can_send_message = True
 
+config.init()
 UI("octalus")
