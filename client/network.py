@@ -1,3 +1,5 @@
+#TODO cleanup naming conventions
+#TODO reorganize
 from socket import *
 import threading
 import json
