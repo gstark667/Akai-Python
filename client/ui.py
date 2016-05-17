@@ -1,15 +1,49 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel
+import threading
+from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import config
 
 class UI():
-   #TODO don't pass username as an argument, load it from the config file
-   def __init__(self, username):
+   def __init__(self):
       self.app = QApplication(sys.argv)
-      self.main_window = MainWindow(username)
-      sys.exit(self.app.exec_())
+
+      self.username = config.user["username"]
+      self.login_window = LoginWindow()
+      #TODO have the login ui handle the authentication (through network.py)
+      #     then have ui emit a logged in signal
+      #     use that signal to initialize the mainwindow
+      self.login_window.login_button.clicked.connect(self.closeLogin)
+      #self.main_window = MainWindow(self.username)
+      self.app.exec_()
+
+   def closeLogin(self):
+      self.login_window.close()
+
+class LoginWindow(QWidget):
+   def __init__(self):
+      super().__init__()
+      self.initUI()
+
+   def initUI(self):
+      self.grid = QGridLayout(self)
+
+      self.username_label = QLabel("Username:")
+      self.grid.addWidget(self.username_label, 0, 0, 1, 1)
+      self.username_field = QLineEdit()
+      self.grid.addWidget(self.username_field, 0, 1, 1, 1)
+
+      self.password_label = QLabel("Password:")
+      self.grid.addWidget(self.password_label, 1, 0, 1, 1)
+      self.password_field = QLineEdit()
+      self.password_field.setEchoMode(QLineEdit.Password)
+      self.grid.addWidget(self.password_field, 1, 1, 1, 1)
+
+      self.login_button = QPushButton("Login")
+      self.grid.addWidget(self.login_button)
+
+      self.show()
 
 class MainWindow(QWidget):
    def __init__(self, username):
@@ -110,6 +144,3 @@ class MessageInput(QTextEdit):
       super().keyPressEvent(event)
       if event.key() == Qt.Key_Shift:
          self.can_send_message = True
-
-config.init()
-UI("octalus")

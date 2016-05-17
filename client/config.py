@@ -1,4 +1,3 @@
-#TODO make this into a class
 import os
 import json
 
