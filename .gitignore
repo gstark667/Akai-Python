@@ -26,3 +26,6 @@
 *.exe
 *.out
 *.app
+
+__pycache__
+users.json

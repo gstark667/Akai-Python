@@ -40,6 +40,29 @@ class ClientConnection():
    def authenticate_client(self):
       request = conn.recv(1024)
       request = json.loads(request.decode("utf-8"))
+      if request["action"] == "CREATE":
+         print("Creating User")
+         if request["username"] in database.users:
+            response = {"action":"RESP", "good":"False", "reqnum":request["reqnum"], "message":"User already exists"}
+            conn.send(json.dumps(response).encode("utf-8"))
+            return False
+         if len(request["username"]) == 0:
+            response = {"action":"RESP", "good":"False", "reqnum":request["reqnum"], "message":"username cannot be empty"}
+            conn.send(json.dumps(response).encode("utf-8"))
+            return False
+         if len(request["password"]) == 0:
+            response = {"action":"RESP", "good":"False", "reqnum":request["reqnum"], "message":"password cannot be empty"}
+            conn.send(json.dumps(response).encode("utf-8"))
+            return False
+         if len(request["email"]) == 0:
+            response = {"action":"RESP", "good":"False", "reqnum":request["reqnum"], "message":"email cannot be empty"}
+            conn.send(json.dumps(response).encode("utf-8"))
+            return False
+         if database.create_user(request):
+            self.username=request["username"]
+            response = {"action":"RESP", "good":"True", "reqnum":request["reqnum"]}
+            conn.send(json.dumps(response).encode("utf-8"))
+            return True
       if not request["action"] == "AUTH":
          return False
       if not database.authenticate(request["username"], request["password"]):

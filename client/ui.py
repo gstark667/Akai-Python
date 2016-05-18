@@ -1,6 +1,7 @@
+#TODO implement i18n eventually
 import sys
 import threading
-from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QDialog
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import config
@@ -10,18 +11,30 @@ class UI():
       self.app = QApplication(sys.argv)
 
       self.username = config.user["username"]
-      self.login_window = LoginWindow()
       #TODO have the login ui handle the authentication (through network.py)
       #     then have ui emit a logged in signal
       #     use that signal to initialize the mainwindow
-      self.login_window.login_button.clicked.connect(self.closeLogin)
       #self.main_window = MainWindow(self.username)
-      self.app.exec_()
+      self.createLogin()
+
+   def createLogin(self):
+      self.login_window = LoginWindow()
+      self.login_window.loggedIn.connect(self.closeLogin)
+      self.login_window.exit.connect(self.closeApplication)
 
    def closeLogin(self):
       self.login_window.close()
 
+   def closeApplication(self):
+      self.app.quit()
+
+   def exec(self):
+      return self.app.exec_()
+
 class LoginWindow(QWidget):
+   loggedIn   = pyqtSignal()
+   exit       = pyqtSignal()
+   
    def __init__(self):
       super().__init__()
       self.initUI()
@@ -41,9 +54,106 @@ class LoginWindow(QWidget):
       self.grid.addWidget(self.password_field, 1, 1, 1, 1)
 
       self.login_button = QPushButton("Login")
-      self.grid.addWidget(self.login_button)
+      self.login_button.pressed.connect(self.login)
+      self.grid.addWidget(self.login_button, 2, 0, 1, 2)
+
+      self.create_button = QPushButton("Create Account")
+      self.create_button.pressed.connect(self.createUser)
+      self.grid.addWidget(self.create_button, 3, 0, 1, 2)
+      #TODO add account recovery
+      #TODO add options button for language and server config
+
+      self.exit_button = QPushButton("Exit")
+      self.exit_button.pressed.connect(self.exitLogin)
+      self.grid.addWidget(self.exit_button, 4, 0, 1, 2)
 
       self.show()
+
+   def login(self):
+      #TODO actually log in
+      self.loggedIn.emit()
+
+   def createUser(self):
+      #TODO actually create a user
+      create_account_dialog = CreateAccountDialog()
+      create_account_dialog.exec_()
+      print("made the user")
+      self.login()
+
+   def exitLogin(self):
+      self.exit.emit()
+
+class CreateAccountDialog(QDialog):
+   def __init__(self):
+      super().__init__()
+      self.initUI()
+      self.created_account = False
+
+   def initUI(self):
+      self.setWindowModality(Qt.ApplicationModal)
+      self.setWindowTitle("Create Account")
+
+      self.grid = QGridLayout(self)
+
+      self.username_label = QLabel("Username:")
+      self.grid.addWidget(self.username_label, 0, 0, 1, 1)
+      self.username_field = QLineEdit()
+      self.grid.addWidget(self.username_field, 0, 1, 1, 1)
+
+      self.email_label = QLabel("Email:")
+      self.grid.addWidget(self.email_label, 1, 0, 1, 1)
+      self.email_field = QLineEdit()
+      self.grid.addWidget(self.email_field, 1, 1, 1, 1)
+
+      self.password_label = QLabel("Password:")
+      self.grid.addWidget(self.password_label, 2, 0, 1, 1)
+      self.password_field = QLineEdit()
+      self.password_field.setEchoMode(QLineEdit.Password)
+      self.grid.addWidget(self.password_field, 2, 1, 1, 1)
+
+      self.password_confirm_label = QLabel("Password Confirm:")
+      self.grid.addWidget(self.password_confirm_label, 3, 0, 1, 1)
+      self.password_confirm_field = QLineEdit()
+      self.password_confirm_field.setEchoMode(QLineEdit.Password)
+      self.grid.addWidget(self.password_confirm_field, 3, 1, 1, 1)
+
+      self.create_button = QPushButton("Create")
+      self.create_button.pressed.connect(self.createAccount)
+      self.grid.addWidget(self.create_button, 4, 0, 1, 2)
+
+      self.cancel_button = QPushButton("Cancel")
+      self.cancel_button.pressed.connect(self.cancel)
+      self.grid.addWidget(self.cancel_button, 5, 0, 1, 2)
+
+   def createAccount(self):
+      #TODO add some sort of error message to the ui
+      username = self.username_field.text()
+      email    = self.email_field.text()
+      password = self.password_field.text()
+      password_confirm = self.password_confirm_field.text()
+      if len(username) == 0:
+         print("username cannot be empty")
+         return
+
+      if len(email) == 0:
+         print("email cannot be empty")
+         return
+
+      if len(password) == 0:
+         print("password cannot be empty")
+         return
+
+      if not password == password_confirm:
+         print("passwords do not match")
+         return
+
+      #TODO add backend functions for creating account
+      self.created_account = True
+      self.close()
+
+   def cancel(self):
+      self.created_account = False
+      self.close()
 
 class MainWindow(QWidget):
    def __init__(self, username):

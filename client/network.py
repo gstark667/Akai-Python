@@ -15,7 +15,7 @@ class ClientSocket:
       self.authenticated = False
 
       self.connect_direct(address, port)
-      self.authenticate_user()
+      #self.authenticate_user()
 
       self.processing_thread = threading.Thread(target=self.process_messages)
       self.processing_thread.deamon = True
@@ -38,11 +38,21 @@ class ClientSocket:
          self.authenticated = False
          self.disconnect()
 
+   def checkAccountCreation(self, response):
+      print("Checking Account Creation")
+      if response["good"] == "True":
+         self.authenticated = True
+      else:
+         print("Account Creation Failed")
+         print(response["message"])
+         self.authenticated = False
+         self.disconnect()
+
    def authenticate_user(self):
       request = {"action":"AUTH", "username":self.username, "password":self.password,
                  "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.check_authentication
-      self.send_request(json.dumps(request))
+      self.sendRequest(json.dumps(request))
 
    def increment_request_number(self):
       self.request_number = (self.request_number + 1) % 256
@@ -50,7 +60,7 @@ class ClientSocket:
    def send_response(self, response):
       self.sock.send(json.dumps(response).encode("utf-8"))
 
-   def send_request(self, request):
+   def sendRequest(self, request):
       self.sock.send(request.encode("utf-8"))
       self.increment_request_number()
 
@@ -58,7 +68,7 @@ class ClientSocket:
       while not self.authenticated:
          time.sleep(1)
       request = {"action": "SEND", "recipiant": recipiant, "content": message}
-      self.send_request(json.dumps(request))
+      self.sendRequest(json.dumps(request))
 
    def receive_message(self, request):
       print("%s:%s" % (request["sender"], request["content"]))
@@ -80,5 +90,12 @@ class ClientSocket:
             break
          self.handle_message(data.decode("utf-8"))
 
+   def createUser(self):
+      request = {"action":"CREATE", "username":"octalus", "password":"something", "email":"something", "reqnum":self.request_number}
+      self.response_handlers[self.request_number] = self.checkAccountCreation
+      self.sendRequest(json.dumps(request))
+      
+
 socket = ClientSocket("localhost", 6667, "gstark", "potato")
+socket.createUser()
 socket.send_message("Hello", "gstark")

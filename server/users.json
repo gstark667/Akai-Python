@@ -1,1 +1,1 @@
-{"gstark": {"password": {"hash": "990152d7bfce354f7d720d5859ff7f6ea88a52d1e78ff2c9e63297a298a25e5f", "salt": "11b1a017c76c6f4fcabc498b344ca11c88e0cda7ad8a896f03af0907220f0100"}}}
+{"octalus": {"password": {"salt": "de163881d846514ecad9815974c97c2d4f58b1786cc6297b572cab3b0a3b307c", "hash": "97ff6c4f6d2d683c1a484c2450b0b67a9a24afb817bcd85fe1c09a280960842e"}}, "gstark": {"password": {"salt": "11b1a017c76c6f4fcabc498b344ca11c88e0cda7ad8a896f03af0907220f0100", "hash": "990152d7bfce354f7d720d5859ff7f6ea88a52d1e78ff2c9e63297a298a25e5f"}}}
