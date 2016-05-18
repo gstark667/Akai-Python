@@ -4,7 +4,7 @@ import threading
 from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QDialog
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-import config
+import config, network
 
 class UI():
    def __init__(self):
@@ -71,14 +71,20 @@ class LoginWindow(QWidget):
 
    def login(self):
       #TODO actually log in
+      self.client_socket = network.ClientSocket("localhost", 6667)
+      self.client_socket.authenticateUser(self.username_field.text(), self.password_field.text(), self.loginSuccess, self.loginFailure)
+
+   def loginSuccess(self):
       self.loggedIn.emit()
 
+   def loginFailure(self):
+      print("Failed to authenticate against server")
+
    def createUser(self):
-      #TODO actually create a user
       create_account_dialog = CreateAccountDialog()
       create_account_dialog.exec_()
       print("made the user")
-      self.login()
+      self.loginSuccess()
 
    def exitLogin(self):
       self.exit.emit()
@@ -147,9 +153,15 @@ class CreateAccountDialog(QDialog):
          print("passwords do not match")
          return
 
-      #TODO add backend functions for creating account
+      self.client_socket = network.ClientSocket("localhost", 6667)
+      self.client_socket.createAccount(self.username_field.text(), self.password_field.text(), self.email_field.text(), self.createAccountSuccess, self.createAccountFailure)
+
+   def createAccountSuccess(self):
       self.created_account = True
       self.close()
+
+   def createAccountFailure(self, message):
+      print(message)
 
    def cancel(self):
       self.created_account = False

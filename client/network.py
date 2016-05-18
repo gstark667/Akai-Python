@@ -1,22 +1,23 @@
-#TODO cleanup naming conventions
 #TODO reorganize
+#TODO add encryption
 from socket import *
 import threading
 import json
 import time
 
 class ClientSocket:
-   def __init__(self, address, port, username, password):
-      self.username = username
-      self.password = password
+   def __init__(self, address, port):
+      self.address = address
+      self.port = port
       self.messages = []
       self.request_number = 0
       self.response_handlers = {}
       self.authenticated = False
 
-      self.connectDirect(address, port)
+      #self.connectDirect(address, port)
       #self.authenticateUser()
 
+   def startProcessingThread(self):
       self.processing_thread = threading.Thread(target=self.processMessages)
       self.processing_thread.deamon = True
       self.processing_thread.start()
@@ -24,6 +25,7 @@ class ClientSocket:
    def connectDirect(self, address, port):
       self.sock = socket(AF_INET, SOCK_STREAM)
       self.sock.connect((address, port))
+      self.startProcessingThread()
 
    def disconnect(self):
       self.sock.close()
@@ -33,23 +35,30 @@ class ClientSocket:
       if response["good"] == "True":
          print("User Authenticated")
          self.authenticated = True
+         self.authenticate_success_callback()
       else:
          print("Authentication Failed")
          self.authenticated = False
-         self.disconnect()
+         self.authenticate_failure_callback()
 
    def checkAccountCreation(self, response):
       print("Checking Account Creation")
       if response["good"] == "True":
          self.authenticated = True
+         self.creation_success_callback()
       else:
          print("Account Creation Failed")
          print(response["message"])
          self.authenticated = False
-         self.disconnect()
+         self.creation_failure_callback(response["message"])
 
-   def authenticateUser(self):
-      request = {"action":"AUTH", "username":self.username, "password":self.password,
+   def authenticateUser(self, username, password, authenticate_success_callback, authenticate_failure_callback):
+      self.connectDirect(self.address, self.port)
+      self.username = username
+      self.password = password
+      self.authenticate_success_callback = authenticate_success_callback
+      self.authenticate_failure_callback = authenticate_failure_callback
+      request = {"action":"AUTH", "username":username, "password":password,
                  "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.checkAuthentication
       self.sendRequest(json.dumps(request))
@@ -90,12 +99,18 @@ class ClientSocket:
             break
          self.handleMessage(data.decode("utf-8"))
 
-   def createUser(self):
-      request = {"action":"CREATE", "username":"octalus", "password":"something", "email":"something", "reqnum":self.request_number}
+   def createAccount(self, username, password, email, creation_success_callback, creation_failure_callback):
+      self.connectDirect(self.address, self.port)
+      self.username = username
+      self.password = password
+      self.email    = email
+      self.creation_success_callback = creation_success_callback
+      self.creation_failure_callback = creation_failure_callback
+      request = {"action":"CREATE", "username":username, "password":password, "email":email, "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.checkAccountCreation
       self.sendRequest(json.dumps(request))
       
 
-socket = ClientSocket("localhost", 6667, "gstark", "potato")
-socket.createUser()
-socket.sendMessage("Hello", "gstark")
+#socket = ClientSocket("localhost", 6667, "gstark", "potato")
+#socket.createUser()
+#socket.sendMessage("Hello", "gstark")

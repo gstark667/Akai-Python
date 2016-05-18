@@ -22,7 +22,7 @@ def create_user(request):
    #TODO return a response for the server to send (or put the checks in server.py)
    salt = binascii.hexlify(os.urandom(32)).decode("utf-8")
    password_hash = hash_password(request["password"], salt)
-   user = {"password": {"hash":password_hash, "salt":salt}}
+   user = {"password": {"hash":password_hash, "salt":salt}, "email":request["email"]}
    users[request["username"]] = user
    return True
 

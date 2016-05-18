@@ -27,5 +27,5 @@
 *.out
 *.app
 
-__pycache__
-users.json
+*__pycache__*
+*users.json
