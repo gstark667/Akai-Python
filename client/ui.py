@@ -10,20 +10,27 @@ class UI():
    def __init__(self):
       self.app = QApplication(sys.argv)
 
-      self.username = config.user["username"]
-      #TODO have the login ui handle the authentication (through network.py)
-      #     then have ui emit a logged in signal
-      #     use that signal to initialize the mainwindow
-      #self.main_window = MainWindow(self.username)
-      self.createLogin()
+      if config.user["username"] and config.user["password"]:
+         self.autoLogin()
+      else:
+         self.createLogin()
+
+   def autoLogin(self):
+      client_socket = network.ClientSocket("localhost", 6667)
+      client_socket.authenticateUser(config.user["username"], config.user["password"], self.loginSuccess, self.loginFailure)
+      self.createMain(client_socket)
 
    def createLogin(self):
       self.login_window = LoginWindow()
-      self.login_window.loggedIn.connect(self.closeLogin)
+      self.login_window.loggedIn.connect(self.finishLogin)
       self.login_window.exit.connect(self.closeApplication)
 
-   def closeLogin(self):
+   def finishLogin(self):
       self.login_window.close()
+      self.createMain(self.login_window.client_socket)
+
+   def createMain(self, client_socket):
+      self.main_window = MainWindow(client_socket)
 
    def closeApplication(self):
       self.app.quit()
@@ -32,8 +39,8 @@ class UI():
       return self.app.exec_()
 
 class LoginWindow(QWidget):
-   loggedIn   = pyqtSignal()
-   exit       = pyqtSignal()
+   loggedIn = pyqtSignal()
+   exit     = pyqtSignal()
    
    def __init__(self):
       super().__init__()
@@ -70,11 +77,12 @@ class LoginWindow(QWidget):
       self.show()
 
    def login(self):
-      #TODO actually log in
       self.client_socket = network.ClientSocket("localhost", 6667)
       self.client_socket.authenticateUser(self.username_field.text(), self.password_field.text(), self.loginSuccess, self.loginFailure)
 
    def loginSuccess(self):
+      config.user["username"] = self.username_field.text()
+      config.user["password"] = self.password_field.text()
       self.loggedIn.emit()
 
    def loginFailure(self):
@@ -83,7 +91,6 @@ class LoginWindow(QWidget):
    def createUser(self):
       create_account_dialog = CreateAccountDialog()
       create_account_dialog.exec_()
-      print("made the user")
       self.loginSuccess()
 
    def exitLogin(self):
@@ -157,6 +164,8 @@ class CreateAccountDialog(QDialog):
       self.client_socket.createAccount(self.username_field.text(), self.password_field.text(), self.email_field.text(), self.createAccountSuccess, self.createAccountFailure)
 
    def createAccountSuccess(self):
+      config.user["username"] = self.username_field.text()
+      config.user["password"] = self.password_field.text()
       self.created_account = True
       self.close()
 
@@ -167,11 +176,12 @@ class CreateAccountDialog(QDialog):
       self.created_account = False
       self.close()
 
+#TODO get the socket to actually close when we exit
 class MainWindow(QWidget):
-   def __init__(self, username):
+   def __init__(self, client_socket):
       super().__init__()
 
-      self.username = username
+      self.client_socket = client_socket
       self.messages = {}
       self.send_on_enter = True
 
