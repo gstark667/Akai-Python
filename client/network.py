@@ -87,16 +87,18 @@ class ClientSocket:
       self.sock.send(request.encode("utf-8"))
       self.incrementRequestNumber()
 
-   def sendMessage(self, message, recipiant):
+   def sendMessage(self, message, chat, participants):
+      #TODO setup a response callback
       while not self.authenticated:
          time.sleep(1)
-      request = {"action": "SEND", "recipiant": recipiant, "content": message}
+      request = {"action": "SEND", "message": message, "chat": chat, "participants": participants}
       self.sendRequest(json.dumps(request))
 
    def receiveMessage(self, request):
       print("%s:%s" % (request["sender"], request["content"]))
       response = {"action":"RESP", "good":"True", "reqnum":request["reqnum"]}
       sendResponse(response)
+      self.ui_recv_message_callback(requset["chat"], {"sender":request["sender"], "message":request["message"]})
 
    def handleMessage(self, message):
       message = json.loads(message)

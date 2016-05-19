@@ -46,7 +46,7 @@ class UI():
       self.createMain()
 
    def createMain(self):
-      self.main_window = MainWindow(self.client_socket)
+      self.main_window = MainWindow(self.client_socket, self.app.processEvents)
 
    def closeApplication(self):
       self.app.quit()
@@ -192,18 +192,23 @@ class CreateAccountDialog(QDialog):
       self.created_account = False
       self.close()
 
-#TODO get the socket to actually close when we exit
 class MainWindow(QWidget):
-   def __init__(self, client_socket):
+   def __init__(self, client_socket, process_events_method):
       super().__init__()
 
+      self.username = config.user["username"]
       self.client_socket = client_socket
-      self.messages = {}
+      self.client_socket.ui_recv_message_callback = self.recvMessage
+      self.process_events_method = process_events_method
+      self.chats = {}
       self.send_on_enter = True
 
       self.initUI()
-      #TODO create config class and load friends list from config file
+      #TODO load friends list from config file
+      self.addFriend("test")
       self.addFriend("octalus")
+      for i in range(100):
+         self.chats["octalus"]["messages"].append({"sender":"test", "message":"hello"})
 
    def initUI(self):
       self.hbox = QHBoxLayout(self)
@@ -211,14 +216,7 @@ class MainWindow(QWidget):
       self.friend_list = QListWidget()
       self.friend_list.itemClicked.connect(self.friendClicked)
 
-      self.message_history = QVBoxLayout()
-      self.message_history.setSpacing(0)
-      self.message_history.setContentsMargins(0,0,0,0)
-      self.message_history.insertStretch(-1, 1)
-      self.message_history_container = QWidget()
-      self.message_history_container.setLayout(self.message_history)
       self.message_scroll = QScrollArea()
-      self.message_scroll.setWidget(self.message_history_container)
       self.message_scroll.setWidgetResizable(True)
 
       self.message_input = MessageInput()
@@ -238,22 +236,29 @@ class MainWindow(QWidget):
 
    def addFriend(self, username):
       #TODO load message history here
-      self.messages[username] = []
-      self.messages[username].append(("octalus", "hello"))
-      self.messages[username].append(("gstark", "hi"))
+      self.chats[username] = {"participants":[username], "messages":[]}
       #TODO we should probably sanatize these to prevent directory manipulation
       friend = QListWidgetItem(QIcon(config.ICON_DIR + username + ".png"), username)
       self.friend_list.addItem(friend)
 
    def friendClicked(self, item):
-      print(str(item.text()))
       self.loadMessages(str(item.text()))
 
-   def loadMessages(self, username):
-      self.clearMessages()
+   def loadMessages(self, chat):
+      #self.clearMessages()
       #TODO make the message history look pretty
-      for message in self.messages[username]:
-         self.recvMessage(message)
+      #TODO consider storing a message history for each chat and switch between when needed
+      #TODO create a chat class and store the chat name as well as the participants there
+      #TODO index message histories by chat name
+      self.message_history = QVBoxLayout()
+      self.message_history.setSpacing(0)
+      self.message_history.setContentsMargins(0,0,0,0)
+      self.message_history.insertStretch(-1, 1)
+      self.message_history_container = QWidget()
+      self.message_history_container.setLayout(self.message_history)
+      self.message_scroll.setWidget(self.message_history_container)
+      for message in self.chats[chat]["messages"]:
+         self.drawMessage(message)
 
    def clearMessages(self):
       while not self.message_history.isEmpty():
@@ -261,18 +266,26 @@ class MainWindow(QWidget):
 
    def sendMessage(self):
       message = self.message_input.toPlainText().strip()
-      print("Sending: %s" % (message))
+      chat = self.friend_list.selectedItems()[0].text()
+      self.client_socket.sendMessage(message, self.chats[chat]["participants"][0])
+      print("Sending: %s to %s" % (message, chat))
       self.message_input.setText("")
-      self.recvMessage((self.username, message))
+      self.recvMessage(chat, {"sender":self.username, "message":message})
 
-   def recvMessage(self, message):
-      #TODO add a timestamp to messages, maybe use a dict?
-      self.message_history.addWidget(QLabel(message[0] + ':' + message[1]))
+   def recvMessage(self, chat, message):
+      self.chats[chat]["messages"].append(message)
+      current_chat = self.friend_list.selectedItems()[0].text()
+      if current_chat == chat:
+         self.drawMessage(message)
+
+   def drawMessage(self, message):
+      #TODO add a timestamp to messages
+      self.message_history.addWidget(QLabel(message["sender"] + ':' + message["message"]))
       #TODO get the scroll area to scroll to bottom when updated
       #TODO let the user pick if the scrollbar moves to the bottom when updated
       #     also have an option for now scrolling when scrolled back in history
-      self.message_scroll.verticalScrollBar().setValue(self.message_scroll.verticalScrollBar().maximum())
-
+      #self.message_scroll.verticalScrollBar().setValue(self.message_scroll.verticalScrollBar().maximum())
+      
 class MessageInput(QTextEdit):
    sendMessage = pyqtSignal()
 
