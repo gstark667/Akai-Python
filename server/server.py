@@ -64,8 +64,12 @@ class ClientConnection():
             conn.send(json.dumps(response).encode("utf-8"))
             return True
       if not request["action"] == "AUTH":
+         response = {"action":"RESP", "good":"False", "reqnum":request["reqnum"]}
+         conn.send(json.dumps(response).encode("utf-8"))
          return False
       if not database.authenticate(request["username"], request["password"]):
+         response = {"action":"RESP", "good":"False", "reqnum":request["reqnum"]}
+         conn.send(json.dumps(response).encode("utf-8"))
          return False
       self.username = request["username"]
       response = {"action":"RESP", "good":"True", "reqnum":request["reqnum"]}

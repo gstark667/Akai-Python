@@ -19,6 +19,10 @@ def init():
    loadFriends()
    loadUser()
 
+def save():
+   saveFriends()
+   saveUser()
+
 def loadFriends():
    global friends
    try:
@@ -33,6 +37,7 @@ def saveFriends():
    friends_file = open(FRIEND_CONFIG, "w")
    friends_file.write(json.dumps(friends))
 
+#TODO find a good way to store passwords locally
 def loadUser():
    global user
    try:

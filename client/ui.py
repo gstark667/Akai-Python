@@ -5,20 +5,35 @@ from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QAppli
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import config, network
+import time
 
 class UI():
    def __init__(self):
       self.app = QApplication(sys.argv)
 
       if config.user["username"] and config.user["password"]:
+         self.finished_auto = False
          self.autoLogin()
       else:
          self.createLogin()
 
    def autoLogin(self):
-      client_socket = network.ClientSocket("localhost", 6667)
-      client_socket.authenticateUser(config.user["username"], config.user["password"], self.loginSuccess, self.loginFailure)
-      self.createMain(client_socket)
+      self.client_socket = network.ClientSocket("localhost", 6667)
+      self.client_socket.authenticateUser(config.user["username"], config.user["password"], self.autoLoginSuccess, self.autoLoginFailure)
+      while not self.finished_auto:
+         time.sleep(1)
+      if self.auto_success:
+         self.createMain()
+      else:
+         self.createLogin()
+
+   def autoLoginSuccess(self):
+      self.finished_auto = True
+      self.auto_success  = True
+
+   def autoLoginFailure(self):
+      self.finished_auto = True
+      self.auto_success  = False
 
    def createLogin(self):
       self.login_window = LoginWindow()
@@ -27,10 +42,11 @@ class UI():
 
    def finishLogin(self):
       self.login_window.close()
-      self.createMain(self.login_window.client_socket)
+      self.client_socket = self.login_window.client_socket
+      self.createMain()
 
-   def createMain(self, client_socket):
-      self.main_window = MainWindow(client_socket)
+   def createMain(self):
+      self.main_window = MainWindow(self.client_socket)
 
    def closeApplication(self):
       self.app.quit()

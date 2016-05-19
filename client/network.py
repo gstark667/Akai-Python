@@ -1,9 +1,11 @@
 #TODO reorganize
 #TODO add encryption
-from socket import *
+import socket
+#from socket import *
 import threading
 import json
 import time
+import select
 
 class ClientSocket:
    def __init__(self, address, port):
@@ -23,7 +25,8 @@ class ClientSocket:
       self.processing_thread.start()
 
    def connectDirect(self, address, port):
-      self.sock = socket(AF_INET, SOCK_STREAM)
+      self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      self.sock.settimeout(1)
       self.sock.connect((address, port))
       self.startProcessingThread()
 
@@ -51,6 +54,17 @@ class ClientSocket:
          print(response["message"])
          self.authenticated = False
          self.creation_failure_callback(response["message"])
+
+   def authenticateUser(self, username, password):
+      self.connectDirect(self.address, self.port)
+      self.username = username
+      self.password = password
+      self.authenticate_success_callback = authenticate_success_callback
+      self.authenticate_failure_callback = authenticate_failure_callback
+      request = {"action":"AUTH", "username":username, "password":password,
+                 "reqnum":self.request_number}
+      self.response_handlers[self.request_number] = self.checkAuthentication
+      self.sendRequest(json.dumps(request))
 
    def authenticateUser(self, username, password, authenticate_success_callback, authenticate_failure_callback):
       self.connectDirect(self.address, self.port)
@@ -93,11 +107,18 @@ class ClientSocket:
          self.receiveMessage(message)
 
    def processMessages(self):
+      #TODO make sure all socket operations are try catched
+      #TODO might want to use select instead of a bunch of timeouts
       while True:
-         data = self.sock.recv(1024)
-         if len(data) == 0:
+         try:
+            data = self.sock.recv(1024)
+            if len(data) == 0:
+               break
+            self.handleMessage(data.decode("utf-8"))
+         except socket.timeout:
+            continue
+         except socket.error:
             break
-         self.handleMessage(data.decode("utf-8"))
 
    def createAccount(self, username, password, email, creation_success_callback, creation_failure_callback):
       self.connectDirect(self.address, self.port)
@@ -109,8 +130,3 @@ class ClientSocket:
       request = {"action":"CREATE", "username":username, "password":password, "email":email, "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.checkAccountCreation
       self.sendRequest(json.dumps(request))
-      
-
-#socket = ClientSocket("localhost", 6667, "gstark", "potato")
-#socket.createUser()
-#socket.sendMessage("Hello", "gstark")
