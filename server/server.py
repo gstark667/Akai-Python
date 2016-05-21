@@ -12,9 +12,6 @@ HOST = ""
 PORT = 6667
 
 clients = {}
-#this is for testing
-#password is potato
-#hash was generated with os.urandom(32)
 
 class ClientConnection():
    def __init__(self, conn, addr):
@@ -81,6 +78,17 @@ class ClientConnection():
       if message["action"] == "RESP" and message["reqnum"] in self.response_handlers:
          self.response_handlers[message["reqnum"]](message)
          del self.response_handlers[message["reqnum"]]
+      if message["action"] == "SEND":
+         self.distributeMessage(message)
+
+   def distributeMessage(self, message):
+      request = {"action":"RECV", "sender":self.username, "message":message["message"], "chat":message["chat"], "reqnum":"0"}
+      print("distributing message")
+      for receiver in message["participants"]:
+         print(receiver)
+         #TODO probably want to make a semaphore and lock the socket object
+         if receiver in clients:
+            clients[receiver].conn.send(json.dumps(request).encode("utf-8"))
 
    def process_messages(self):
       while True:

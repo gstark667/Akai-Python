@@ -28,9 +28,9 @@ def create_user(request):
 
 def authenticate(username, password):
    global users
-   user = users[username]
-   if not user:
+   if not username in users:
       return False
+   user = users[username]
    password_hash = hash_password(password, user["password"]["salt"])
    return password_hash == user["password"]["hash"]
 

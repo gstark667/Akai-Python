@@ -11,7 +11,7 @@ class UI():
    def __init__(self):
       self.app = QApplication(sys.argv)
 
-      if config.user["username"] and config.user["password"]:
+      if "username" in config.user and "password" in config.user:
          self.finished_auto = False
          self.autoLogin()
       else:
@@ -19,13 +19,9 @@ class UI():
 
    def autoLogin(self):
       self.client_socket = network.ClientSocket("localhost", 6667)
-      self.client_socket.authenticateUser(config.user["username"], config.user["password"], self.autoLoginSuccess, self.autoLoginFailure)
-      while not self.finished_auto:
-         time.sleep(1)
-      if self.auto_success:
-         self.createMain()
-      else:
-         self.createLogin()
+      self.client_socket.authenticateUser(config.user["username"], config.user["password"])
+      self.client_socket.authenticate_success.connect(self.createMain)
+      self.client_socket.authenticate_failure.connect(self.createLogin)
 
    def autoLoginSuccess(self):
       self.finished_auto = True
@@ -94,7 +90,9 @@ class LoginWindow(QWidget):
 
    def login(self):
       self.client_socket = network.ClientSocket("localhost", 6667)
-      self.client_socket.authenticateUser(self.username_field.text(), self.password_field.text(), self.loginSuccess, self.loginFailure)
+      self.client_socket.authenticateUser(self.username_field.text(), self.password_field.text())
+      self.client_socket.authenticate_success.connect(self.loginSuccess)
+      self.client_socket.authenticate_failure.connect(self.loginFailure)
 
    def loginSuccess(self):
       config.user["username"] = self.username_field.text()
@@ -107,6 +105,7 @@ class LoginWindow(QWidget):
    def createUser(self):
       create_account_dialog = CreateAccountDialog()
       create_account_dialog.exec_()
+      self.client_socket = create_account_dialog.client_socket
       self.loginSuccess()
 
    def exitLogin(self):
@@ -177,7 +176,9 @@ class CreateAccountDialog(QDialog):
          return
 
       self.client_socket = network.ClientSocket("localhost", 6667)
-      self.client_socket.createAccount(self.username_field.text(), self.password_field.text(), self.email_field.text(), self.createAccountSuccess, self.createAccountFailure)
+      self.client_socket.createAccount(self.username_field.text(), self.password_field.text(), self.email_field.text())
+      self.client_socket.account_create_success.connect(self.createAccountSuccess)
+      self.client_socket.account_create_failure.connect(self.createAccountFailure)
 
    def createAccountSuccess(self):
       config.user["username"] = self.username_field.text()
@@ -199,6 +200,7 @@ class MainWindow(QWidget):
       self.username = config.user["username"]
       self.client_socket = client_socket
       self.client_socket.ui_recv_message_callback = self.recvMessage
+      self.client_socket.recv_message.connect(self.recvMessage)
       self.process_events_method = process_events_method
       self.chats = {}
       self.send_on_enter = True
@@ -234,6 +236,7 @@ class MainWindow(QWidget):
 
       self.show()
 
+
    def addFriend(self, username):
       #TODO load message history here
       self.chats[username] = {"participants":[username], "messages":[]}
@@ -267,7 +270,7 @@ class MainWindow(QWidget):
    def sendMessage(self):
       message = self.message_input.toPlainText().strip()
       chat = self.friend_list.selectedItems()[0].text()
-      self.client_socket.sendMessage(message, self.chats[chat]["participants"][0])
+      self.client_socket.sendMessage(message, chat, self.chats[chat]["participants"])
       print("Sending: %s to %s" % (message, chat))
       self.message_input.setText("")
       self.recvMessage(chat, {"sender":self.username, "message":message})
