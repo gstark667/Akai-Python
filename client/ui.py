@@ -1,7 +1,7 @@
 #TODO implement i18n eventually
 import sys
 import threading
-from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QDialog, QWebView
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import config, network
@@ -218,8 +218,7 @@ class MainWindow(QWidget):
       self.friend_list = QListWidget()
       self.friend_list.itemClicked.connect(self.friendClicked)
 
-      self.message_scroll = QScrollArea()
-      self.message_scroll.setWidgetResizable(True)
+      self.message_scroll = QWebView()
 
       self.message_input = MessageInput()
       self.message_input.sendMessage.connect(self.sendMessage)

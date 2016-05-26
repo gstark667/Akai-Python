@@ -16,6 +16,10 @@ def init():
    ICON_DIR = CONFIG_DIR + "icons/"
    FRIEND_CONFIG = CONFIG_DIR + "friend.conf"
    USER_CONFIG = CONFIG_DIR + "user.conf"
+
+   if not os.path.exists(CONFIG_DIR):
+      os.makedirs(CONFIG_DIR)
+
    loadFriends()
    loadUser()
 
