@@ -1,13 +1,17 @@
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5
+from Crypto.Hash import SHA
+from Crypto import Random
 import hashlib
+import binascii
 
 #password is entered by the user (or stored in file)
 #TODO hash the password before it gets sent to the server
 #     (prevents rouge server from getting user passwords)
-password = b"potato"
+#password = b"potato"
 #salt will be stored on server and passed to client for use in key generation
 #(prevents password confirmation through brute force public key generation)
-salt     = b"salty"
+#salt     = b"salty"
 
 class PRNG(object):
 
@@ -15,7 +19,7 @@ class PRNG(object):
       self.password = password
       self.salt     = salt
       self.cur_hash = self.salt + self.password
-      for i in range(1000000):
+      for i in range(100000):
          self.cur_hash = hashlib.sha256(self.salt + self.cur_hash).digest()
       self.buffer   = b""
 
@@ -29,17 +33,55 @@ class PRNG(object):
 def generate_key(password, salt, length):
    return RSA.generate(length, randfunc=PRNG(password, salt))
 
-key = generate_key(password, salt, 2048)
-print(key.exportKey())
-print(key.publickey().exportKey())
+class MessagePacker():
+   def __init__(self, send_key, recv_key, block_size=16):
+      self.send_key = send_key
+      self.recv_key = recv_key
+      self.block_size = block_size
 
-privKey = key
-pubKey  = key.publickey()
+   #TODO enforce encoding
+   def packageMessage(self, message):
+      signature = self.send_key.sign(message, 'a')[0]
+      #TODO do this in a way that doesn't suck and make gigantic byte arrays
+      signature = signature.to_bytes(signature.bit_length(), 'little')
+      padded_message = self.padMessage(b"") #first section is a chunk dispalying the padding size
+      padded_message += self.padMessage(signature) #second is the message signature, padded
+      padded_message += self.padMessage(message) #last is the actual message
+      return padded_message
 
-text = b"Hello World"
-etext = pubKey.encrypt(text, 'x')
-dtext = privKey.decrypt(etext)
+   def padMessage(self, message):
+      to_pad = self.block_size - (len(message)%self.block_size)
+      pad = b""
+      for _ in range(to_pad):
+         pad += bytes([to_pad])
+      return message + pad
 
-print(text)
-print(etext)
-print(dtext)
+#send key is private
+#recv key is public
+key1 = generate_key(b"test", b"salt", 2048)
+key2 = generate_key(b"test2", b"salt", 2048)
+
+packer = MessagePacker(key1, key2.publickey(), 16)
+print(packer.packageMessage(b"Hello Alice"))
+
+#message = b"Hello Alice"
+#signature = key1.sign(message, 'a')
+
+#emessage = key2.publickey().encrypt(message, 'a')
+
+
+#print(key2.decrypt(emessage))
+#print(key1.publickey().verify(message, signature))
+#print(key.exportKey())
+#print(key.publickey().exportKey())
+
+#privKey = key
+#pubKey  = key.publickey()
+
+#text = b"Hello World"
+#etext = pubKey.encrypt(text, 'x')
+#dtext = privKey.decrypt(etext)
+
+#print(text)
+#print(etext)
+#print(dtext)
