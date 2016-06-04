@@ -15,6 +15,8 @@ class LoginWindow(QWidget):
    def initUI(self):
       self.grid = QGridLayout(self)
 
+      self.warning_label = None
+
       self.username_label = QLabel("Username:")
       self.grid.addWidget(self.username_label, 0, 0, 1, 1)
       self.username_field = QLineEdit()
@@ -42,6 +44,13 @@ class LoginWindow(QWidget):
 
       self.show()
 
+   def setWarning(self, message):
+      if self.warning_label == None:
+         self.warning_label = QLabel("")
+         self.warning_label.setStyleSheet("QLabel { color: red; }")
+         self.grid.addWidget(self.warning_label, 5, 0, 1, 2)
+      self.warning_label.setText(message)
+
    def login(self):
       self.client_socket = network.ClientSocket("localhost", 6667)
       self.client_socket.authenticateUser(self.username_field.text(), self.password_field.text())
@@ -54,13 +63,14 @@ class LoginWindow(QWidget):
       self.loggedIn.emit()
 
    def loginFailure(self):
-      print("Failed to authenticate against server")
+      self.setWarning("Failed to authenticate")
 
    def createUser(self):
       create_account_dialog = CreateAccountDialog()
       create_account_dialog.exec_()
-      self.client_socket = create_account_dialog.client_socket
-      self.loginSuccess()
+      if create_account_dialog.created_account:
+         self.client_socket = create_account_dialog.client_socket
+         self.loginSuccess()
 
    def exitLogin(self):
       self.exit.emit()

@@ -7,6 +7,7 @@ class CreateAccountDialog(QDialog):
    def __init__(self):
       super().__init__()
       self.initUI()
+      self.created_account = False
 
    def initUI(self):
       self.setWindowModality(Qt.ApplicationModal)
@@ -54,7 +55,6 @@ class CreateAccountDialog(QDialog):
       self.warning_label.setText(message)
 
    def createAccount(self):
-      #TODO add some sort of error message to the ui
       username = self.username_field.text()
       email    = self.email_field.text()
       password = self.password_field.text()
@@ -83,6 +83,7 @@ class CreateAccountDialog(QDialog):
    def createAccountSuccess(self):
       config.user["username"] = self.username_field.text()
       config.user["password"] = self.password_field.text()
+      self.created_account = True
       self.close()
 
    def createAccountFailure(self, message):

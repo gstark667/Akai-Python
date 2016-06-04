@@ -8,6 +8,7 @@ from UI.MainWindow import MainWindow
 class UI():
    def __init__(self):
       self.app = QApplication(sys.argv)
+      self.main_window = None
 
       if "username" in config.user and "password" in config.user:
          self.finished_auto = False
@@ -48,3 +49,6 @@ class UI():
    def exec(self):
       return self.app.exec_()
 
+   def disconnect(self):
+      if not self.main_window == None:
+         self.main_window.disconnect()

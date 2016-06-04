@@ -120,6 +120,9 @@ class MainWindow(QMainWindow):
    def scrollBottom(self):
       self.message_scroll.verticalScrollBar().setValue(self.message_scroll.verticalScrollBar().maximum())
 
+   def disconnect(self):
+      self.client_socket.disconnect()
+
 class MessageInput(QTextEdit):
    sendMessage = pyqtSignal()
 
