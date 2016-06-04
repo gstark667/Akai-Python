@@ -14,6 +14,8 @@ class CreateAccountDialog(QDialog):
 
       self.grid = QGridLayout(self)
 
+      self.warning_label = None
+
       self.username_label = QLabel("Username:")
       self.grid.addWidget(self.username_label, 0, 0, 1, 1)
       self.username_field = QLineEdit()
@@ -44,6 +46,13 @@ class CreateAccountDialog(QDialog):
       self.cancel_button.pressed.connect(self.cancel)
       self.grid.addWidget(self.cancel_button, 5, 0, 1, 2)
 
+   def setWarning(self, message):
+      if self.warning_label == None:
+         self.warning_label = QLabel("")
+         self.warning_label.setStyleSheet("QLabel { color: red; }")
+         self.grid.addWidget(self.warning_label, 6, 0, 1, 2)
+      self.warning_label.setText(message)
+
    def createAccount(self):
       #TODO add some sort of error message to the ui
       username = self.username_field.text()
@@ -51,19 +60,19 @@ class CreateAccountDialog(QDialog):
       password = self.password_field.text()
       password_confirm = self.password_confirm_field.text()
       if len(username) == 0:
-         print("username cannot be empty")
+         self.setWarning("Username cannot be empty")
          return
 
       if len(email) == 0:
-         print("email cannot be empty")
+         self.setWarning("Email cannot be empty")
          return
 
       if len(password) == 0:
-         print("password cannot be empty")
+         self.setWarning("Password cannot be empty")
          return
 
       if not password == password_confirm:
-         print("passwords do not match")
+         self.setWarning("Passwords do not match")
          return
 
       self.client_socket = network.ClientSocket("localhost", 6667)
@@ -77,7 +86,8 @@ class CreateAccountDialog(QDialog):
       self.close()
 
    def createAccountFailure(self, message):
-      print(message)
+      #TODO implement error codes and i18n translation
+      self.setWarning(message)
 
    def cancel(self):
       self.close()
