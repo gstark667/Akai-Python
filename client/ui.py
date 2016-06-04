@@ -1,7 +1,7 @@
 #TODO implement i18n eventually
 import sys
 import threading
-from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QDialog, QWebView
+from PyQt5.QtWidgets import QApplication, QWidget, QToolTip, QPushButton, QApplication, QSplitter, QFrame, QTextEdit, QHBoxLayout, QListWidget, QScrollArea, QListWidgetItem, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QDialog, QMainWindow, QAction
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import config, network
@@ -193,18 +193,18 @@ class CreateAccountDialog(QDialog):
       self.created_account = False
       self.close()
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
    def __init__(self, client_socket, process_events_method):
       super().__init__()
 
       self.username = config.user["username"]
       self.client_socket = client_socket
-      self.client_socket.ui_recv_message_callback = self.recvMessage
       self.client_socket.recv_message.connect(self.recvMessage)
       self.process_events_method = process_events_method
       self.chats = {}
       self.send_on_enter = True
 
+      self.initMenubar()
       self.initUI()
       #TODO load friends list from config file
       self.addFriend("test")
@@ -212,13 +212,28 @@ class MainWindow(QWidget):
       for i in range(100):
          self.chats["octalus"]["messages"].append({"sender":"test", "message":"hello"})
 
+   def initMenubar(self):
+      self.exitAction = QAction("&Create Chat", self)
+      #self.exitAction.setShortcut("Ctrl+Q")
+      self.exitAction.triggered.connect(self.createChat)
+
+      self.menubar = self.menuBar()
+      self.fileMenu = self.menubar.addMenu("&Chat")
+      self.fileMenu.addAction(self.exitAction)
+
    def initUI(self):
-      self.hbox = QHBoxLayout(self)
+      self.content = QWidget()
+
+      self.hbox = QHBoxLayout(self.content)
+      self.setCentralWidget(self.content)
 
       self.friend_list = QListWidget()
       self.friend_list.itemClicked.connect(self.friendClicked)
 
-      self.message_scroll = QWebView()
+      self.message_scroll = QScrollArea()
+      self.message_scroll.setWidgetResizable(True)
+      #TODO have a setting to disable this
+      self.message_scroll.verticalScrollBar().rangeChanged.connect(self.scrollBottom)
 
       self.message_input = MessageInput()
       self.message_input.sendMessage.connect(self.sendMessage)
@@ -235,13 +250,18 @@ class MainWindow(QWidget):
 
       self.show()
 
-
    def addFriend(self, username):
       #TODO load message history here
       self.chats[username] = {"participants":[username], "messages":[]}
       #TODO we should probably sanatize these to prevent directory manipulation
       friend = QListWidgetItem(QIcon(config.ICON_DIR + username + ".png"), username)
       self.friend_list.addItem(friend)
+
+   def createChat(self):
+      create_chat_dialog = CreateChatDialog()
+      create_chat_dialog.exec_()
+      #self.chats[chat] = {"participants":participants, "message":[]}
+      #self.friend_list.addItem(chat)
 
    def friendClicked(self, item):
       self.loadMessages(str(item.text()))
@@ -282,11 +302,11 @@ class MainWindow(QWidget):
 
    def drawMessage(self, message):
       #TODO add a timestamp to messages
-      self.message_history.addWidget(QLabel(message["sender"] + ':' + message["message"]))
-      #TODO get the scroll area to scroll to bottom when updated
-      #TODO let the user pick if the scrollbar moves to the bottom when updated
-      #     also have an option for now scrolling when scrolled back in history
-      #self.message_scroll.verticalScrollBar().setValue(self.message_scroll.verticalScrollBar().maximum())
+      new_message = QLabel(message["sender"] + ':' + message["message"])
+      self.message_history.addWidget(new_message)
+
+   def scrollBottom(self):
+      self.message_scroll.verticalScrollBar().setValue(self.message_scroll.verticalScrollBar().maximum())
       
 class MessageInput(QTextEdit):
    sendMessage = pyqtSignal()
@@ -307,3 +327,40 @@ class MessageInput(QTextEdit):
       super().keyPressEvent(event)
       if event.key() == Qt.Key_Shift:
          self.can_send_message = True
+
+class CreateChatDialog(QDialog):
+   def __init__(self):
+      super().__init__()
+      self.initUI()
+
+   def initUI(self):
+      self.setWindowModality(Qt.ApplicationModal)
+      self.setWindowTitle("Create Chat")
+
+      self.grid = QGridLayout(self)
+
+      self.chat_name_label = QLabel("Chat Name:")
+      self.grid.addWidget(self.username_label, 0, 0, 1, 1)
+      self.chat_name_field = QLineEdit()
+      self.grid.addWidget(self.username_field, 0, 1, 1, 2)
+
+      #TODO make this actually about chats
+      self.email_label = QLabel("Email:")
+      self.grid.addWidget(self.email_label, 1, 0, 1, 1)
+      self.email_field = QLineEdit()
+      self.grid.addWidget(self.email_field, 1, 1, 1, 1)
+
+      self.password_label = QLabel("Password:")
+      self.grid.addWidget(self.password_label, 2, 0, 1, 1)
+      self.password_field = QLineEdit()
+      self.password_field.setEchoMode(QLineEdit.Password)
+      self.grid.addWidget(self.password_field, 2, 1, 1, 1)
+
+      self.password_confirm_label = QLabel("Password Confirm:")
+      self.grid.addWidget(self.password_confirm_label, 3, 0, 1, 1)
+      self.password_confirm_field = QLineEdit()
+      self.password_confirm_field.setEchoMode(QLineEdit.Password)
+      self.grid.addWidget(self.password_confirm_field, 3, 1, 1, 1)
+
+#class OptionsDialog(QDialog):
+#   def __init__(self):

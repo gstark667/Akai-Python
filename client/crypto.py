@@ -4,6 +4,7 @@ from Crypto.Hash import SHA
 from Crypto import Random
 import hashlib
 import binascii
+import struct
 
 #password is entered by the user (or stored in file)
 #TODO hash the password before it gets sent to the server
@@ -42,12 +43,19 @@ class MessagePacker():
    #TODO enforce encoding
    def packageMessage(self, message):
       signature = self.send_key.sign(message, 'a')[0]
-      #TODO do this in a way that doesn't suck and make gigantic byte arrays
-      signature = signature.to_bytes(signature.bit_length(), 'little')
-      padded_message = self.padMessage(b"") #first section is a chunk dispalying the padding size
-      padded_message += self.padMessage(signature) #second is the message signature, padded
-      padded_message += self.padMessage(message) #last is the actual message
-      return padded_message
+      signature_bytes = signature.to_bytes(int(signature.bit_length()/8), 'big')
+      padding_block = self.padMessage(b"")
+      padded_signature = self.padMessage(signature_bytes)
+      padded_message = self.padMessage(message)
+      length = len(padding_block + padded_signature + padded_message) + 2*self.block_size
+      padded_length = self.padMessage(length.to_bytes(16, 'big'))
+      packaged_message = padding_block + padded_length + padded_signature + padded_message
+
+      encrypted_message = []
+      while len(packaged_message) > 0:
+         encrypted_message.append(packaged_message[0:256])
+         packaged_message = packaged_message[256:]
+      return encrypted_message
 
    def padMessage(self, message):
       to_pad = self.block_size - (len(message)%self.block_size)
@@ -56,13 +64,23 @@ class MessagePacker():
          pad += bytes([to_pad])
       return message + pad
 
+class MessageUnpacker():
+   def __init__(self, recv_key):
+      self.recv_key = recv_key
+      self.unpacked_message = ""
+      self.block_size = 0
+
+   def unpackMessage(self, message):
+      dencrypted_message = recv_key.decrypt(message)
+      print(decrypted_message)
+
 #send key is private
 #recv key is public
 key1 = generate_key(b"test", b"salt", 2048)
 key2 = generate_key(b"test2", b"salt", 2048)
 
 packer = MessagePacker(key1, key2.publickey(), 16)
-print(packer.packageMessage(b"Hello Alice"))
+packed_message = packer.packageMessage(b"Hello Alice")
 
 #message = b"Hello Alice"
 #signature = key1.sign(message, 'a')
