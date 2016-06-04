@@ -1,8 +1,8 @@
 import config
-import ui
+from UI.UI import UI
 
 config.init()
-user_interface = ui.UI()
+user_interface = UI()
 user_interface.exec()
 print("Exit")
 user_interface.main_window.client_socket.disconnect()
