@@ -70,8 +70,9 @@ class MainWindow(QMainWindow):
       if type(username) is bool:
          add_friend_dialog = AddFriendDialog(self.client_socket)
          add_friend_dialog.exec_()
-         print(running)
-      #TODO load message history here
+         if add_friend_dialog.selected_user == None:
+            return
+         username = add_friend_dialog.selected_user
       self.chats[username] = {"participants":[username], "messages":[]}
       #TODO we should probably sanatize these to prevent directory manipulation
       friend = QListWidgetItem(QIcon(config.ICON_DIR + username + ".png"), username)

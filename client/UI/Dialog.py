@@ -168,6 +168,7 @@ class AddFriendDialog(QDialog):
       super().__init__()
       self.client_socket = client_socket 
       self.client_socket.recv_user_search.connect(self.recvUserSearch)
+      self.selected_user = None
       self.initUI()
 
    def initUI(self):
@@ -177,17 +178,23 @@ class AddFriendDialog(QDialog):
       self.grid.addWidget(self.search_box_label, 0, 0, 1, 1)
 
       self.search_box = QLineEdit()
-      self.grid.addWidget(self.search_box, 0, 1, 1, 3)
+      self.grid.addWidget(self.search_box, 0, 1, 1, 2)
 
       self.search_button = QPushButton("Search")
       self.search_button.pressed.connect(self.searchUser)
-      self.grid.addWidget(self.search_button, 0, 5, 1, 1)
+      self.grid.addWidget(self.search_button, 0, 3, 1, 1)
 
       self.search_result = QListWidget()
-      self.grid.addWidget(self.search_result, 1, 0, 4, 2)
+      self.grid.addWidget(self.search_result, 1, 0, 2, 2)
 
-      #TODO make button for adding the user as a friend
       #TODO get user avatars to work
+      self.add_friend_button = QPushButton("Add Friend")
+      self.add_friend_button.pressed.connect(self.addFriend)
+      self.grid.addWidget(self.add_friend_button, 1, 2, 1, 2)
+
+      self.cancel_button = QPushButton("Cancel")
+      self.cancel_button.pressed.connect(self.cancel)
+      self.grid.addWidget(self.cancel_button, 2, 2, 1, 2)
 
    def searchUser(self):
       self.client_socket.searchUser(self.search_box.text())
@@ -196,4 +203,11 @@ class AddFriendDialog(QDialog):
       self.search_result.clear()
       for user in found_users:
          self.search_result.addItem(QListWidgetItem(user))
-      print(found_users)
+
+   def addFriend(self):
+      self.selected_user = self.search_result.selectedItems()[0].text()
+      config.friends[self.selected_user] = {}
+      self.close()
+
+   def cancel(self):
+      self.close()

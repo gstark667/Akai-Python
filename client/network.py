@@ -130,7 +130,6 @@ class ClientSocket(QObject):
       self.sendRequest(json.dumps(request))
 
    def searchUser(self, query):
-      print(query)
       request = {"action":"SEARCH", "query":query, "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.recvUserSearch
       self.sendRequest(json.dumps(request))
