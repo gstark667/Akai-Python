@@ -19,10 +19,9 @@ class MainWindow(QMainWindow):
       self.initMenubar()
       self.initUI()
       #TODO load friends list from config file
-      self.addFriend("test")
-      self.addFriend("octalus")
-      for i in range(100):
-         self.chats["octalus"]["messages"].append({"sender":"test", "message":"hello"})
+      print(config.chats)
+      for chat in config.chats:
+         self.createChat(chat, config.chats[chat]["participants"])
 
    def initMenubar(self):
       self.exitAction = QAction("&Create Chat", self)
@@ -69,11 +68,16 @@ class MainWindow(QMainWindow):
       friend = QListWidgetItem(QIcon(config.ICON_DIR + username + ".png"), username)
       self.friend_list.addItem(friend)
 
-   def createChat(self):
-      create_chat_dialog = CreateChatDialog()
-      create_chat_dialog.exec_()
-      #self.chats[chat] = {"participants":participants, "message":[]}
-      #self.friend_list.addItem(chat)
+   def createChat(self, chat_name=None, participants=None):
+      if chat_name == None or participants == None:
+         create_chat_dialog = CreateChatDialog()
+         create_chat_dialog.exec_()
+         if not create_chat_dialog.created_chat:
+            return
+         chat_name = create_chat_dialog.chat_name
+         participants = create_chat_dialog.participants
+      self.chats[chat_name] = {"participants":participants, "messages":[]}
+      self.friend_list.addItem(QListWidgetItem(chat_name))
 
    def friendClicked(self, item):
       self.loadMessages(str(item.text()))

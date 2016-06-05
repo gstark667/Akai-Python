@@ -1,7 +1,8 @@
 import config
 import network
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QListWidget, \
+   QListWidgetItem, QPushButton
 
 class CreateAccountDialog(QDialog):
    def __init__(self):
@@ -97,6 +98,12 @@ class CreateChatDialog(QDialog):
    def __init__(self):
       super().__init__()
       self.initUI()
+      self.created_chat = False
+      self.participants = []
+      self.chat_name = None
+
+      for friend in config.friends:
+         self.unadded_friends.addItem(QListWidgetItem(friend))
 
    def initUI(self):
       self.setWindowModality(Qt.ApplicationModal)
@@ -105,24 +112,52 @@ class CreateChatDialog(QDialog):
       self.grid = QGridLayout(self)
 
       self.chat_name_label = QLabel("Chat Name:")
-      self.grid.addWidget(self.username_label, 0, 0, 1, 1)
+      self.grid.addWidget(self.chat_name_label, 0, 0, 1, 1)
       self.chat_name_field = QLineEdit()
-      self.grid.addWidget(self.username_field, 0, 1, 1, 2)
+      self.grid.addWidget(self.chat_name_field, 0, 1, 1, 3)
 
-      #TODO make this actually about chats
-      self.email_label = QLabel("Email:")
-      self.grid.addWidget(self.email_label, 1, 0, 1, 1)
-      self.email_field = QLineEdit()
-      self.grid.addWidget(self.email_field, 1, 1, 1, 1)
+      self.unadded_friends = QListWidget()
+      self.unadded_friends.setSortingEnabled(True)
+      self.grid.addWidget(self.unadded_friends, 1, 0, 4, 2)
 
-      self.password_label = QLabel("Password:")
-      self.grid.addWidget(self.password_label, 2, 0, 1, 1)
-      self.password_field = QLineEdit()
-      self.password_field.setEchoMode(QLineEdit.Password)
-      self.grid.addWidget(self.password_field, 2, 1, 1, 1)
+      self.added_friends = QListWidget()
+      self.added_friends.setSortingEnabled(True)
+      self.grid.addWidget(self.added_friends, 1, 3, 4, 1)
 
-      self.password_confirm_label = QLabel("Password Confirm:")
-      self.grid.addWidget(self.password_confirm_label, 3, 0, 1, 1)
-      self.password_confirm_field = QLineEdit()
-      self.password_confirm_field.setEchoMode(QLineEdit.Password)
-      self.grid.addWidget(self.password_confirm_field, 3, 1, 1, 1)
+      self.add_friend_button = QPushButton(">>")
+      self.add_friend_button.pressed.connect(self.addFriend)
+      self.grid.addWidget(self.add_friend_button, 2, 2, 1, 1)
+
+      self.remove_friend_button = QPushButton("<<")
+      self.remove_friend_button.pressed.connect(self.removeFriend)
+      self.grid.addWidget(self.remove_friend_button, 3, 2, 1, 1)
+
+      self.create_button = QPushButton("Create")
+      self.create_button.pressed.connect(self.createChat)
+      self.grid.addWidget(self.create_button, 5, 0, 1, 4)
+
+      self.cancel_button = QPushButton("Cancel")
+      self.cancel_button.pressed.connect(self.cancel)
+      self.grid.addWidget(self.cancel_button, 6, 0, 1, 4)
+
+   def addFriend(self):
+      selected_friends = self.unadded_friends.selectedItems()
+      for friend in selected_friends:
+         self.unadded_friends.takeItem(self.unadded_friends.row(friend))
+         self.added_friends.addItem(friend)
+
+   def removeFriend(self):
+      selected_friends = self.added_friends.selectedItems()
+      for friend in selected_friends:
+         self.added_friends.takeItem(self.added_friends.row(friend))
+         self.unadded_friends.addItem(friend)
+
+   def createChat(self):
+      self.created_chat = True
+      self.chat_name = self.chat_name_field.text()
+      for i in range(self.added_friends.count()):
+         self.participants.append(self.added_friends.item(i).text())
+      self.close()
+
+   def cancel(self):
+      self.close()
