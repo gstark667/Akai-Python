@@ -3,7 +3,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, \
    QMainWindow, QScrollArea, QSplitter, QTextEdit, QVBoxLayout, QWidget
-from UI.Dialog import CreateChatDialog
+from UI.Dialog import CreateChatDialog, AddFriendDialog
 
 class MainWindow(QMainWindow):
    def __init__(self, client_socket, process_events_method):
@@ -18,19 +18,24 @@ class MainWindow(QMainWindow):
 
       self.initMenubar()
       self.initUI()
-      #TODO load friends list from config file
-      print(config.chats)
+
       for chat in config.chats:
          self.createChat(chat, config.chats[chat]["participants"])
 
    def initMenubar(self):
-      self.exitAction = QAction("&Create Chat", self)
+      self.createChatAction = QAction("&Create Chat", self)
       #self.exitAction.setShortcut("Ctrl+Q")
-      self.exitAction.triggered.connect(self.createChat)
+      self.createChatAction.triggered.connect(self.createChat)
+
+      self.addFriendAction = QAction("&Add Friend", self)
+      self.addFriendAction.triggered.connect(self.addFriend)
 
       self.menubar = self.menuBar()
-      self.fileMenu = self.menubar.addMenu("&Chat")
-      self.fileMenu.addAction(self.exitAction)
+      self.chatMenu = self.menubar.addMenu("&Chat")
+      self.chatMenu.addAction(self.createChatAction)
+
+      self.friendMenu = self.menubar.addMenu("&Friend")
+      self.friendMenu.addAction(self.addFriendAction)
 
    def initUI(self):
       self.content = QWidget()
@@ -61,7 +66,11 @@ class MainWindow(QMainWindow):
 
       self.show()
 
-   def addFriend(self, username):
+   def addFriend(self, username=None):
+      if type(username) is bool:
+         add_friend_dialog = AddFriendDialog(self.client_socket)
+         add_friend_dialog.exec_()
+         print(running)
       #TODO load message history here
       self.chats[username] = {"participants":[username], "messages":[]}
       #TODO we should probably sanatize these to prevent directory manipulation
@@ -69,7 +78,7 @@ class MainWindow(QMainWindow):
       self.friend_list.addItem(friend)
 
    def createChat(self, chat_name=None, participants=None):
-      if chat_name == None or participants == None:
+      if type(chat_name) is bool:
          create_chat_dialog = CreateChatDialog()
          create_chat_dialog.exec_()
          if not create_chat_dialog.created_chat:

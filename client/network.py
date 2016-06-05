@@ -15,6 +15,7 @@ class ClientSocket(QObject):
    authenticate_failure = PyQt5.QtCore.pyqtSignal()
    account_create_success = PyQt5.QtCore.pyqtSignal()
    account_create_failure = PyQt5.QtCore.pyqtSignal(str)
+   recv_user_search = PyQt5.QtCore.pyqtSignal(list)
 
    def __init__(self, address, port):
       super().__init__()
@@ -127,3 +128,12 @@ class ClientSocket(QObject):
       request = {"action":"CREATE", "username":username, "password":password, "email":email, "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.checkAccountCreation
       self.sendRequest(json.dumps(request))
+
+   def searchUser(self, query):
+      print(query)
+      request = {"action":"SEARCH", "query":query, "reqnum":self.request_number}
+      self.response_handlers[self.request_number] = self.recvUserSearch
+      self.sendRequest(json.dumps(request))
+
+   def recvUserSearch(self, response):
+      self.recv_user_search.emit(response["found"])

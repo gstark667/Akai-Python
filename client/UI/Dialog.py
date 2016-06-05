@@ -157,7 +157,43 @@ class CreateChatDialog(QDialog):
       self.chat_name = self.chat_name_field.text()
       for i in range(self.added_friends.count()):
          self.participants.append(self.added_friends.item(i).text())
+      config.chats[self.chat_name] = {"participants": self.participants}
       self.close()
 
    def cancel(self):
       self.close()
+
+class AddFriendDialog(QDialog):
+   def __init__(self, client_socket):
+      super().__init__()
+      self.client_socket = client_socket 
+      self.client_socket.recv_user_search.connect(self.recvUserSearch)
+      self.initUI()
+
+   def initUI(self):
+      self.grid = QGridLayout(self)
+
+      self.search_box_label = QLabel("Search:")
+      self.grid.addWidget(self.search_box_label, 0, 0, 1, 1)
+
+      self.search_box = QLineEdit()
+      self.grid.addWidget(self.search_box, 0, 1, 1, 3)
+
+      self.search_button = QPushButton("Search")
+      self.search_button.pressed.connect(self.searchUser)
+      self.grid.addWidget(self.search_button, 0, 5, 1, 1)
+
+      self.search_result = QListWidget()
+      self.grid.addWidget(self.search_result, 1, 0, 4, 2)
+
+      #TODO make button for adding the user as a friend
+      #TODO get user avatars to work
+
+   def searchUser(self):
+      self.client_socket.searchUser(self.search_box.text())
+
+   def recvUserSearch(self, found_users):
+      self.search_result.clear()
+      for user in found_users:
+         self.search_result.addItem(QListWidgetItem(user))
+      print(found_users)

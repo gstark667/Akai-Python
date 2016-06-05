@@ -46,6 +46,9 @@ class UI():
    def closeApplication(self):
       self.app.quit()
 
+   def searchUser(self, query):
+      self.client_socket.searchUser(query)
+
    def exec(self):
       return self.app.exec_()
 
