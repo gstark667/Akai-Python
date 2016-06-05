@@ -38,3 +38,10 @@ def hash_password(password, salt):
    password_hash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 1000000)
    password_hash = binascii.hexlify(password_hash).decode("utf-8")
    return password_hash
+
+def searchUsers(query):
+   found_users = []
+   for user in users:
+      if user.startswith(query):
+         found_users.append(user)
+   return found_users

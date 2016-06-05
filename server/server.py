@@ -73,13 +73,20 @@ class ClientConnection():
       conn.send(json.dumps(response).encode("utf-8"))
       return True
 
-   def handle_message(self, message):
+   def searchUsers(self, message):
+      found_users = database.searchUsers(message["query"])
+      response = {"action":"RESP", "good":"True", "found":found_users, "reqnum":message["reqnum"]}
+      conn.send(json.dumps(response).encode("utf-8"))
+
+   def handleMessage(self, message):
       message = json.loads(message)
       if message["action"] == "RESP" and message["reqnum"] in self.response_handlers:
          self.response_handlers[message["reqnum"]](message)
          del self.response_handlers[message["reqnum"]]
       if message["action"] == "SEND":
          self.distributeMessage(message)
+      if message["action"] == "SEARCH":
+         self.searchUsers(message)
 
    def distributeMessage(self, message):
       request = {"action":"RECV", "sender":self.username, "message":message["message"], "chat":message["chat"], "reqnum":"0"}
@@ -95,7 +102,7 @@ class ClientConnection():
          data = self.conn.recv(1024)
          if len(data) == 0:
             break
-         self.handle_message(data.decode("utf-8"))
+         self.handleMessage(data.decode("utf-8"))
 
 def signal_handler(signal, frame):
    global server
