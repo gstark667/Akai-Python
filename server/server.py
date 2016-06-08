@@ -100,10 +100,13 @@ class ClientConnection():
 
    def process_messages(self):
       while True:
-         data = self.conn.recv(1024)
-         if len(data) == 0:
+         try:
+            data = self.conn.recv(1024)
+            if len(data) == 0:
+               break
+            self.handleMessage(data.decode("utf-8"))
+         except:
             break
-         self.handleMessage(data.decode("utf-8"))
 
 def signal_handler(signal, frame):
    global server

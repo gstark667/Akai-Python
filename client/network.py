@@ -130,9 +130,6 @@ class ClientSocket(QObject):
       while self.connected:
          try:
             readable, writable, exception = select.select([self.sock], [], [self.sock], 1)
-            print(readable)
-            print(writable)
-            print(exception)
             if readable:
                data = self.sock.recv(256)
                if len(data) == 0:
