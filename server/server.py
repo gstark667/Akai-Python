@@ -7,6 +7,7 @@ import sys
 import hashlib
 import binascii
 import database
+from OpenSSL import SSL
 
 HOST = ""
 PORT = 6667
@@ -116,12 +117,21 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 database.init()
 
-server = socket(AF_INET, SOCK_STREAM)
+ctx = SSL.Context(SSL.TLSv1_2_METHOD)
+ctx.set_options(SSL.OP_NO_SSLv2)
+ctx.use_privatekey_file("server.key")
+ctx.use_certificate_file("server.crt")
+ctx.load_verify_locations("server.crt")
+
+server = SSL.Connection(ctx, socket(AF_INET, SOCK_STREAM))
 server.bind((HOST, PORT))
-server.listen(1)
+server.listen(3)
 
 while True:
-   conn, addr = server.accept()
-   client = ClientConnection(conn, addr)
-   if client.is_connected:
-      clients[client.username] = client
+   #try:
+      conn, addr = server.accept()
+      client = ClientConnection(conn, addr)
+      if client.is_connected:
+         clients[client.username] = client
+   #except SSL.Error:
+   #   print("Client failed SSL connection")

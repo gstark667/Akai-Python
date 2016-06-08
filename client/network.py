@@ -8,6 +8,7 @@ import time
 import select
 import PyQt5.QtCore
 from PyQt5.QtCore import QObject
+from OpenSSL import SSL
 
 class ClientSocket(QObject):
    recv_message = PyQt5.QtCore.pyqtSignal(str, dict)
@@ -25,6 +26,7 @@ class ClientSocket(QObject):
       self.request_number = 0
       self.response_handlers = {}
       self.authenticated = False
+      self.connected = False
 
       #self.connectDirect(address, port)
       #self.authenticateUser()
@@ -34,13 +36,27 @@ class ClientSocket(QObject):
       self.processing_thread.deamon = True
       self.processing_thread.start()
 
+   def verifyCB(self, conn, cert, errnum, depth, ok):
+      print("Got Cert: %s" % cert.get_subject())
+      self.ssl_started = ok
+      return ok
+
    def connectDirect(self, address, port):
-      self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      self.sock.settimeout(1)
+      ctx = SSL.Context(SSL.TLSv1_2_METHOD)
+      ctx.set_verify(SSL.VERIFY_PEER, self.verifyCB)
+      ctx.use_privatekey_file("/home/octalus/client.key")
+      ctx.load_verify_locations('/home/octalus/server.crt')
+
+      self.sock = SSL.Connection(ctx, socket.socket(socket.AF_INET, socket.SOCK_STREAM))
+      #self.sock.settimeout(1)
       self.sock.connect((address, port))
-      self.startProcessingThread()
+      self.connected = True
+      #self.sock.send(b"")
+      #print(self.sock.recv(128))
+      #self.startProcessingThread()
 
    def disconnect(self):
+      self.connected = False
       self.sock.close()
 
    def checkAuthentication(self, response):
@@ -73,6 +89,7 @@ class ClientSocket(QObject):
                  "reqnum":self.request_number}
       self.response_handlers[self.request_number] = self.checkAuthentication
       self.sendRequest(json.dumps(request))
+      self.startProcessingThread()
 
    def incrementRequestNumber(self):
       self.request_number = (self.request_number + 1) % 256
@@ -99,6 +116,7 @@ class ClientSocket(QObject):
       #self.ui_recv_message_callback(request["chat"], {"sender":request["sender"], "message":request["message"]})
 
    def handleMessage(self, message):
+      print(message)
       message = json.loads(message)
       if message["action"] == "RESP" and message["reqnum"] in self.response_handlers:
          self.response_handlers[message["reqnum"]](message)
@@ -109,12 +127,17 @@ class ClientSocket(QObject):
    def processMessages(self):
       #TODO make sure all socket operations are try catched
       #TODO might want to use select instead of a bunch of timeouts
-      while True:
+      while self.connected:
          try:
-            data = self.sock.recv(1024)
-            if len(data) == 0:
-               break
-            self.handleMessage(data.decode("utf-8"))
+            readable, writable, exception = select.select([self.sock], [], [self.sock], 1)
+            print(readable)
+            print(writable)
+            print(exception)
+            if readable:
+               data = self.sock.recv(256)
+               if len(data) == 0:
+                  break
+               self.handleMessage(data.decode("utf-8"))
          except socket.timeout:
             continue
          except socket.error:
