@@ -29,6 +29,3 @@
 
 *__pycache__*
 *users.json
-*.key
-*.crt
-*.csr

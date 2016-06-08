@@ -79,8 +79,6 @@ class MessageUnpacker():
 key1 = generate_key(b"test", b"salt", 2048)
 key2 = generate_key(b"test2", b"salt", 2048)
 
-
-
 packer = MessagePacker(key1, key2.publickey(), 16)
 packed_message = packer.packageMessage(b"Hello Alice")
 
@@ -92,8 +90,8 @@ packed_message = packer.packageMessage(b"Hello Alice")
 
 #print(key2.decrypt(emessage))
 #print(key1.publickey().verify(message, signature))
-print(key1.exportKey())
-print(key1.publickey().exportKey())
+#print(key.exportKey())
+#print(key.publickey().exportKey())
 
 #privKey = key
 #pubKey  = key.publickey()
