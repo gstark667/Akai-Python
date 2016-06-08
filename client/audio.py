@@ -29,7 +29,6 @@ while True:
 
 print("finished recording")
  
- 
 # stop Recording
 stream.stop_stream()
 stream.close()
