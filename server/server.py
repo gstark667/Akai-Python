@@ -131,10 +131,10 @@ server.bind((HOST, PORT))
 server.listen(3)
 
 while True:
-   #try:
+   try:
       conn, addr = server.accept()
       client = ClientConnection(conn, addr)
       if client.is_connected:
          clients[client.username] = client
-   #except SSL.Error:
-   #   print("Client failed SSL connection")
+   except SSL.Error:
+      print("Client failed SSL connection")

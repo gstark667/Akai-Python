@@ -1,42 +1,41 @@
 import pyaudio
-import wave
- 
-FORMAT = pyaudio.paInt16
-CHANNELS = 2
-RATE = 44100
-CHUNK = 1024
-RECORD_SECONDS = 5
-WAVE_OUTPUT_FILENAME = "file.wav"
- 
-audio = pyaudio.PyAudio()
+import socket
+import sys
+import threading
 
-# start Recording
-stream = audio.open(format=FORMAT, channels=CHANNELS,
-   rate=RATE, input=True,
-   frames_per_buffer=CHUNK)
-
-ostream = audio.open(format=FORMAT, channels=CHANNELS,
-   rate=RATE, output=True,
-   frames_per_buffer=CHUNK)
 
 frames = []
- 
-while True:
-   data = stream.read(CHUNK)
-
-   ostream.write(data)
 
 
-print("finished recording")
- 
-# stop Recording
-stream.stop_stream()
-stream.close()
-audio.terminate()
- 
-waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-waveFile.setnchannels(CHANNELS)
-waveFile.setsampwidth(audio.get_sample_size(FORMAT))
-waveFile.setframerate(RATE)
-waveFile.writeframes(b''.join(frames))
-waveFile.close()
+def udp_stream(CHUNK):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('localhost', 5001))
+    while True:
+        if len(frames) > 0:
+            data = sock.sendto(frames.pop(0), ('localhost', 5000))
+    sock.close()
+
+
+def record(stream, CHUNK):
+    while True:
+        frames.append(stream.read(CHUNK))
+
+
+FORMAT = pyaudio.paInt16
+CHUNK = 1024
+CHANNELS = 2
+RATE = 44100
+
+p = pyaudio.PyAudio()
+
+stream = p.open(format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True)
+
+threading.Thread(target=udp_stream, args=[CHUNK]).start()
+threading.Thread(target=record, args=[stream, CHUNK]).start()
+
+#s.close()
+#stream.close()
+#p.terminate()
